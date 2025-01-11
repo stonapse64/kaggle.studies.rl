@@ -20,62 +20,75 @@ from kaggle_environments import make
 
 
 class ConnectXOpponents(Enum):
-    pass
+    RANDOMSELECT = ''
+    RANDOM = 'random'
+    NEGAMAX = 'negamax'
 
 
 class ConnectX:
-    def __init__(self, rows=6, columns=7, inarow=4, fps=1):
+    def __init__(self, rows: int = 6, columns: int = 7, inarow: int = 4, fps=1):
         self.rows = rows
         self. columns = columns
-        self.size = self.rows * self.columns
+        self.inarow = inarow
         self.fps=fps
-        self.env = make("connectx", {"rows": self.rows, "columns": self.columns, "inarow": 4}, debug=False)
+        self.env = make("connectx", {"rows": self.rows, "columns": self.columns,
+                                      "inarow": 4}, debug=True)
 
-        self.trainer = self.trainer_choice(True, True)
+        self.trainer = self.trainer_choice()
         self.obs = self.trainer.reset()
-        # self.render()
 
     def reset(self, seed=None):
         # self.trainer = self.trainer_choice(True, True)
         self.obs = self.trainer.reset()
-    def perform_action(self, column) -> bool:
+    
+    def perform_action(self, column):
         self.obs, self.reward, self.done, self.info = self.trainer.step(column)
         return self.obs, self.reward, self.done, self.info
         pass
-    def render(self):
-        # self.env.render(mode="ipython")
-        pass
-    def trainer_choice(self, random_opponent=True, random_player_starts=True):
-        if random_opponent:
-            opponent = random.choice([*self.env.agents])
-            print("You are playing against the default player:", opponent)
-        if random_player_starts:
-            if random.randint(0, 1):
-            # Training agent in first position (player 1) against a random default agent.
-                print("You will start the game.")
-                trainer = self.env.train([None, opponent])                
-            else:
-                # Training agent in second position (player 2) against a random default agent.
-                trainer = self.env.train([opponent, None])
-                print("Your opponent", opponent, "will start the game.")
-        return trainer
     
+    def render(self):
+        self.env.render(mode="ipython")
+        pass
+    
+    def trainer_choice(self, opponent_choice="", player_to_start=0):
+        assert opponent_choice in ConnectXOpponents
+        assert player_to_start in [0, 1, 2]
+
+        # Selecting a the opponent agent.
+        opponent = random.choice([*self.env.agents]) if opponent_choice == "" \
+            else opponent_choice
+        
+        # Selecting a the playing order.
+        player_to_start = random.randint(1, 2) if player_to_start == 0 \
+            else player_to_start
+        
+        # Setting the opponent agent and the playing order.        
+        trainer = self.env.train([None, opponent]) if player_to_start == 1 \
+                else self.env.train([opponent, None])
+        print(f"You are player {player_to_start} playing against {opponent}.")
+
+        return trainer
+
 
 # For unit testing
 if __name__=="__main__":
-    connectx = ConnectX(rows=10, columns=10)
-    connectx.render()
+    connectx = ConnectX(rows=6, columns=7)
 
-    running = True
+    episodes = 5    
 
-    while(running):
-        rand_action = random.randint(0, connectx.columns - 1)
-        print(rand_action)
-        obs, reward, done, info = connectx.perform_action(rand_action)
+    for i in range(episodes):
+
+        episode_over = False
+
+        while not episode_over:
+            rand_action = random.randint(0, connectx.columns - 1)
+            # print(rand_action)
+            obs, reward, done, info = connectx.perform_action(rand_action)
+            if done:
+                if reward == 1: print("You won!")
+                elif reward == 0: print("Just a draw?")
+                else: print("You lost...")
+                episode_over = True
+                connectx.reset(seed=None)
+
         connectx.render()
-        if done:
-            if reward == 1: print("you won")
-            elif reward == 0: print("a draw")
-            else: print("you lost")
-            running = False
-
