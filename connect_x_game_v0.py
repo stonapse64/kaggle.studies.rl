@@ -16,6 +16,7 @@ leveraging everything that Kaggle had already built.
 
 import random
 from enum import Enum
+import numpy as np
 import pygame
 import sys
 from os import path
@@ -43,15 +44,15 @@ class ConnectX:
     def reset(self, seed=None):
         # self.trainer = self.trainer_choice(True, True)
         self.obs = self.trainer.reset()
+        return np.array(self.obs['board']).reshape(1,self.rows,self.columns) # returns only the board from the Kaggle observation
     
     def perform_action(self, column):
         self.obs, self.reward, self.done, self.info = self.trainer.step(column)
-        return self.obs, self.reward, self.done, self.info
-        pass
+        self.step = self.obs['step'] # extracts the step from the Kaggle observation
+        return np.array(self.obs['board']).reshape(1,self.rows,self.columns), self.step, self.reward, self.done, self.info
     
     def render(self):
         self.env.render(mode="ipython")
-        pass
     
     def trainer_choice(self, opponent_choice="", player_to_start=0):
         assert opponent_choice in ConnectXOpponents

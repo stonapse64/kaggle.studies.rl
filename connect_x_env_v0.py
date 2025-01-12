@@ -7,7 +7,7 @@ from gymnasium import spaces
 from gymnasium.envs.registration import register
 from gymnasium.utils.env_checker import check_env
 
-import connect_x_v0 as cx
+import connect_x_game_v0 as cx
 import numpy as np
 
 # Register this module as a gym environment. Once registered, the id is usable in gym.make().
@@ -36,33 +36,16 @@ class ConnectXEnv(gym.Env):
         # Initialize the game
         self.game = cx.ConnectX(self.rows, self.columns, self.inarow)
 
-        # TODO
-        # Observations are dictionaries with the agent's and the target's location.
-        # Each location is encoded as an element of {0, ..., `size`-1}^2
-        self.observation_space = gym.spaces.Dict(
-            {
-                "agent": gym.spaces.Box(0, size - 1, shape=(2,), dtype=int),
-                "target": gym.spaces.Box(0, size - 1, shape=(2,), dtype=int),
-            }
-        )
-
+        # Our observation is the 2d-board of size self.rows,self.columns
+        self.observation_space = gym.spaces.Box(low=0, high=2, shape=(1,self.rows,self.columns), dtype=int)
         # We have 1 actions which is the column where the next piece goes
-        self.action_space = gym.spaces.Discrete(self. columns - 1)
+        self.action_space = gym.spaces.Discrete(self.columns)
         
-        # TODO
-        # Dictionary maps the abstract actions to the directions on the grid
-        self._action_to_direction = {
-            0: np.array([1, 0]),  # right
-            1: np.array([0, 1]),  # up
-            2: np.array([-1, 0]),  # left
-            3: np.array([0, -1]),  # down
-        }
-
     # Gym required function (and parameters) to reset the environment
     def reset(self, seed=None, options=None):
         super().reset(seed=seed) # gym requires this call to control randomness and reproduce scenarios.
 
-        # Reset the WarehouseRobot. Optionally, pass in seed control randomness and reproduce scenarios.
+        # Reset the game. Optionally, pass in seed control randomness and reproduce scenarios.
         obs = self.game.reset(seed=seed)
         
         # Additional info to return. For debugging or whatever.
@@ -78,7 +61,7 @@ class ConnectXEnv(gym.Env):
     # Gym required function (and parameters) to perform an action
     def step(self, action):
         # Perform action
-        obs, reward, done, info = cx.game.perform_action(action)
+        obs, step, reward, done, info = self.game.perform_action(action)
 
         terminated = done
 
@@ -87,7 +70,7 @@ class ConnectXEnv(gym.Env):
             # This reward function penalizes early losses and late win as 
             # the reward from is cx.game.perform_action(action) is -1 for loss
             # and +1 for wins.
-            reward_factor = (self.size - obs.get('step', 0)) / self.size
+            reward_factor = (self.size - step) / self.size
             reward = reward * reward_factor
 
         # Render environment
@@ -95,9 +78,31 @@ class ConnectXEnv(gym.Env):
             self.render()
 
         # Return observation, reward, terminated, truncated (not used), info
-        return obs, reward, terminated, False, info
-    
+        return obs, reward, terminated, False, info 
     
     # Gym required function to render environment
     def render(self):
         self.game.render()
+    
+    def close(self):
+        pass
+
+# For unit testing
+if __name__=="__main__":
+    env = gym.make('connect_x_env_v0', render_mode='human')
+
+    # # Use this to check our custom environment
+    # print("Check environment begin")
+    # check_env(env.unwrapped)
+    # print("Check environment end")
+
+    # Reset environment
+    obs = env.reset()[0]
+
+    # Take some random actions
+    while(True):
+        rand_action = env.action_space.sample()
+        obs, reward, terminated, _, _ = env.step(rand_action)
+
+        if(terminated):
+            obs = env.reset()[0]
