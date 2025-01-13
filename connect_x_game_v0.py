@@ -47,7 +47,7 @@ class ConnectX:
         return np.array(self.obs['board']).reshape(1,self.rows,self.columns) # returns only the board from the Kaggle observation
     
     def perform_action(self, column):
-        self.obs, self.reward, self.done, self.info = self.trainer.step(column)
+        self.obs, self.reward, self.done, self.info = self.trainer.step(int(column))
         self.step = self.obs['step'] # extracts the step from the Kaggle observation
         return np.array(self.obs['board']).reshape(1,self.rows,self.columns), self.step, self.reward, self.done, self.info
     
